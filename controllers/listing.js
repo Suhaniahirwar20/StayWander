@@ -1,28 +1,33 @@
 const axios = require("axios");
-const Listing = require("../Models/listing");
+const Listing = require("../models/listing");
+const ExpressError = require("../utils/ExpressError");
 
 module.exports.index = async (req, res) => {
   let allListings = await Listing.find({});
-  res.render("listings/index.ejs", { allListings });
+  res.status(200).json({
+    success: true,
+    listings: allListings,
+  });
 };
 
-module.exports.renderNewForm = (req, res) => {
-  res.render("listings/new.ejs");
-};
-
-module.exports.showListing = async (req, res) => {
+module.exports.showListing = async (req, res, next) => {
   let { id } = req.params;
   const listing = await Listing.findById(id)
     .populate({ path: "reviews", populate: { path: "author" } })
     .populate("owner");
   if (!listing) {
-    req.flash("error", "Listing you requested for does not exist!");
-    res.redirect("/listings");
+    return next(new ExpressError(404, "Listing not found"));
   }
-  res.render("listings/show.ejs", { listing });
+  res.status(200).json({
+    success: true,
+    listing,
+  });
 };
 
 module.exports.createListing = async (req, res, next) => {
+  if (!req.file) {
+    return next(new ExpressError(400, "Image is required"));
+  }
   let url = req.file.path;
   let filename = req.file.filename;
 
@@ -42,8 +47,7 @@ module.exports.createListing = async (req, res, next) => {
     },
   );
   if (!response.data.length) {
-    req.flash("error", "Location not found");
-    return res.redirect("/listings/new");
+    return next(new ExpressError(404, "Location not found"));
   }
 
   const latitude = parseFloat(response.data[0].lat);
@@ -57,26 +61,27 @@ module.exports.createListing = async (req, res, next) => {
   newListing.longitude = longitude;
 
   await newListing.save();
-  req.flash("success", "new listing created!");
-  res.redirect("/listings");
+  res.status(201).json({
+    success: true,
+    message: "Listing created successfully",
+    listing: newListing,
+  });
 };
 
-module.exports.renderEditForm = async (req, res) => {
+module.exports.updateListing = async (req, res,next) => {
   let { id } = req.params;
-  const listing = await Listing.findById(id);
+  let listing = await Listing.findByIdAndUpdate(
+    id,
+    { ...req.body.listings },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
   if (!listing) {
-    req.flash("error", "Listing you requested for does not exist!");
-    res.redirect("/listings");
+    return next(new ExpressError(404, "Listing not found"));
   }
-
-  let originalImgUrl = listing.image.url;
-  originalImgUrl = originalImgUrl.replace("/upload", "/upload/h_300,w_250");
-  res.render("listings/edit.ejs", { listing, originalImgUrl });
-};
-
-module.exports.updateListing = async (req, res) => {
-  let { id } = req.params;
-  let listing = await Listing.findByIdAndUpdate(id, { ...req.body.listings });
 
   if (typeof req.file !== "undefined") {
     let url = req.file.path;
@@ -85,13 +90,22 @@ module.exports.updateListing = async (req, res) => {
     await listing.save();
   }
 
-  req.flash("success", "new listing updated!");
-  res.redirect(`/listings/${id}`);
+  res.status(200).json({
+    success: true,
+    message: "Listing updated successfully",
+    listing,
+  });
 };
 
-module.exports.destroyListing = async (req, res) => {
+module.exports.destroyListing = async (req, res,next) => {
   let { id } = req.params;
-  await Listing.findByIdAndDelete(id);
-  req.flash("success", "new listing deleted!");
-  res.redirect("/listings");
+  const listing = await Listing.findByIdAndDelete(id);
+
+  if (!listing) {
+    return next(new ExpressError(404, "Listing not found"));
+  }
+  res.status(200).json({
+    success: true,
+    message: "Listing deleted successfully",
+  });
 };

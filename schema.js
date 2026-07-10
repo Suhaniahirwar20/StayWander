@@ -1,5 +1,6 @@
 const joi = require("joi");
 
+//joi checks if the user's input is valid
 module.exports.listingSchema = joi.object({
     listings: joi.object({
         title:joi.string().required(),

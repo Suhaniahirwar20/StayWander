@@ -1,14 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const Listing = require("../Models/listing");
 const wrapAsync = require("../utils/wrapAsync");
 const { isLoggedIn, isOwner, validateListing } = require("../middleware");
 const {
   index,
-  renderNewForm,
   showListing,
   createListing,
-  renderEditForm,
   updateListing,
   destroyListing,
 } = require("../controllers/listing");
@@ -26,9 +23,6 @@ router
     wrapAsync(createListing),
   );
 
-//new
-router.get("/new", isLoggedIn, renderNewForm);
-
 router
   .route("/:id")
   .get(wrapAsync(showListing))
@@ -40,8 +34,5 @@ router
     wrapAsync(updateListing),
   )
   .delete(isLoggedIn, isOwner, wrapAsync(destroyListing));
-
-//Edit route
-router.get("/:id/edit", isLoggedIn, wrapAsync(renderEditForm));
 
 module.exports = router;

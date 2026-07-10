@@ -4,47 +4,47 @@ if(process.env.NODE_ENV != "production"){
 
 const express = require("express");
 const app = express();
+
+const cors = require("cors");
 const mongoose = require("mongoose");
-const path = require("path");
-const methodOverride = require("method-override");
-const ejsMate = require("ejs-mate");
+
 const ExpressError = require("./utils/ExpressError");
 
 const session = require("express-session");
 const MongoStore = require("connect-mongo").default;
 
-const flash = require("connect-flash");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
-const User = require("./Models/user");
+const User = require("./models/user");
 
 const listingRoute = require("./routes/listing");
 const reviewRoute = require("./routes/review");
 const userRoute = require("./routes/user");
 
-app.set("view engine", "ejs");
-app.engine("ejs", ejsMate);
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
-app.set("views", path.join(__dirname, "views"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(methodOverride("_method"));
-app.use(express.static(path.join(__dirname, "/public")));
 
 // const MONGO_URL = "mongodb://localhost:27017/StayWander";
-const dbUrl = process.env.AtLASDB_URL;
+const dbUrl = process.env.ATLASDB_URL;
 
-main()
-  .then((res) => {
-    console.log("connected to DB");
-  })
-  .catch((err) => {
+const connectDB = async ()=>{
+  try{
+    await mongoose.connect(dbUrl);
+    console.log("MongoDB Connected");
+  }catch(err){
     console.log(err);
-  });
+    process.exit(1);
+  }
+};
 
-async function main() {
-  await mongoose.connect(dbUrl);
-}
+connectDB();
 
 const store = MongoStore.create({
   mongoUrl : dbUrl,
@@ -62,16 +62,16 @@ const sessionOptions = {
   store,
   secret: process.env.SECRET,
   resave:false,
-  saveUninitialized:true,
+  saveUninitialized:false,
   cookie:{
-    expires: Date.now() + 7 * 24 *60 * 60 * 1000,
-    maxAge:7 * 24 *60 * 60 * 1000,
     httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge:7 * 24 *60 * 60 * 1000,
   }
 };
 
 app.use(session(sessionOptions));
-app.use(flash());
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -80,36 +80,25 @@ passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-app.use((req,res,next)=>{
-  res.locals.success = req.flash("success");
-  res.locals.error = req.flash("error");
-  res.locals.currUser = req.user;
-  next();
-});
+app.use("/api/listings",listingRoute);
+app.use("/api/listings/:id/reviews",reviewRoute);
+app.use("/api/auth",userRoute);
 
-// app.get("/demoUser",async (req,res)=>{
-//   let fakeUser = new User({
-//     email:"student@gmail.com",
-//     username:"delta-student"
-//   });
-
-//   let registeredUser = await User.register(fakeUser,"helloworld");
-//   res.send(registeredUser);
-// })
-
-app.use("/listings",listingRoute);
-app.use("/listings/:id/reviews",reviewRoute);
-app.use("/",userRoute);
-
-app.use((req,res,next)=>{
-  next(new ExpressError(404,"Page not found!"));
+app.use((req, res, next) => {
+    next(new ExpressError(404, "Page not found"));
 });
 
 app.use((err, req, res, next) => {
-  let {status=500,message="Something went wrong"} = err;
-  res.render("error.ejs",{err});
+  let { status = 500, message = "Something went wrong" } = err;
+
+  res.status(status).json({
+    success: false,
+    message,
+  });
 });
 
-app.listen(8080, (req, res) => {
-  console.log("server is listening to port 8080");
+const PORT = process.env.PORT || 8000;
+
+app.listen(PORT, (req, res) => {
+  console.log(`server is listening to port ${PORT}`);
 });

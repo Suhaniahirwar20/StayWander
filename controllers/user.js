@@ -1,43 +1,56 @@
-const User = require("../Models/user");
+const User = require("../models/user");
 
-module.exports.renderSignupForm = (req, res) => {
-  res.render("users/signup.ejs");
-};
-
-module.exports.signUp = async (req, res) => {
+module.exports.signUp = async (req, res, next) => {
   try {
-    let { username, email, password } = req.body;
+    const { username, email, password } = req.body;
     const newUser = new User({ email, username });
     const registeredUser = await User.register(newUser, password);
     req.login(registeredUser, (err) => {
       if (err) {
         return next(err);
       }
-      req.flash("success", "welcome to stayWander");
-      res.redirect("/listings");
+
+      res.status(201).json({
+        success: true,
+        message: "Account created successfully",
+        user: {
+          id: registeredUser._id,
+          username: registeredUser.username,
+          email: registeredUser.email,
+        },
+      });
     });
-  } catch (e) {
-    req.flash("error", e.message);
-    res.redirect("/signup");
+  } catch (err) {
+    next(err);
   }
 };
 
-module.exports.renderLoginForm = (req, res) => {
-  res.render("users/login.ejs");
+module.exports.login = (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Login successful",
+    user: {
+      id: req.user._id,
+      username: req.user.username,
+      email: req.user.email,
+    },
+  });
 };
 
-module.exports.logIn = async (req, res) => {
-  req.flash("success", "Welcome back to stayWander");
-  let redirectUrl = res.locals.redirectUrl || "/listings";
-  res.redirect(redirectUrl);
-};
-
-module.exports.logOut = (req, res) => {
-  req.logOut((err) => {
+module.exports.logOut = (req, res, next) => {
+  req.logout((err) => {
     if (err) {
       return next(err);
     }
-    req.flash("success", "you are logged out!");
-    res.redirect("/listings");
+    req.session.destroy((err) => {
+      if(err) return next(err);
+      
+      res.clearCookie("connect.sid");
+
+      res.status(200).json({
+        success: true,
+        message: "Logged out successfully",
+      });
+    });
   });
 };
