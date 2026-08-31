@@ -1,0 +1,41 @@
+.destination-hero{
+    position:relative;
+    height:50vh;
+
+    background-image:url("/destinationHero.png");
+    background-size:cover;
+    background-position:center;
+
+    display:flex;
+    align-items:center;
+}
+
+.destination-overlay{
+
+    position:absolute;
+    inset:0;
+
+    background:linear-gradient(
+        rgba(0,0,0,.25),
+        rgba(0,0,0,.45)
+    );
+}
+
+.destination-hero-content{
+
+    position:relative;
+    z-index:2;
+    color:white;
+}
+
+.destination-hero-content h1{
+
+    font-size:4.0rem;
+    font-weight:700;
+    margin-bottom:15px;
+}
+
+.destination-hero-content p{
+    font-size:1.2rem;
+    color:white;
+}

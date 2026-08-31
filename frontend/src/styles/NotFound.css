@@ -1,0 +1,59 @@
+
+.notfound-container {
+    min-height: 100vh;
+    background: #F8F9FA;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.notfound-card {
+    width: 100%;
+    max-width: 550px;
+    background: #fff;
+    border-radius: 24px;
+    padding: 60px 40px;
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0,0,0,.08);
+}
+
+.notfound-icon {
+    font-size: 70px;
+    color: #f69444;
+    margin-bottom: 20px;
+}
+
+.error-code {
+    font-size: 90px;
+    color: #2D6A4F;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.notfound-title {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.notfound-text {
+    color: #6c757d;
+    line-height: 1.7;
+    margin-bottom: 30px;
+}
+
+.btn.home-btn {
+    background: #f69444;
+    color: white;
+    padding: 12px 28px;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: .3s;
+}
+
+.btn.home-btn:hover {
+    background: #f48436;
+    color: white;
+    transform: translateY(-2px);
+}
