@@ -2,9 +2,23 @@ const User = require("../models/user");
 
 module.exports.signUp = async (req, res, next) => {
   try {
-    const { username, email, password } = req.body;
-    const newUser = new User({ email, username });
+    const { firstName, lastName, email, password, confirmPassword } = req.body;
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match",
+      });
+    }
+
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+    });
+
     const registeredUser = await User.register(newUser, password);
+
     req.login(registeredUser, (err) => {
       if (err) {
         return next(err);
@@ -15,7 +29,8 @@ module.exports.signUp = async (req, res, next) => {
         message: "Account created successfully",
         user: {
           id: registeredUser._id,
-          username: registeredUser.username,
+          firstName: registeredUser.firstName,
+          lastName: registeredUser.lastName,
           email: registeredUser.email,
         },
       });
@@ -31,7 +46,8 @@ module.exports.login = (req, res) => {
     message: "Login successful",
     user: {
       id: req.user._id,
-      username: req.user.username,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
       email: req.user.email,
     },
   });
@@ -43,8 +59,8 @@ module.exports.logOut = (req, res, next) => {
       return next(err);
     }
     req.session.destroy((err) => {
-      if(err) return next(err);
-      
+      if (err) return next(err);
+
       res.clearCookie("connect.sid");
 
       res.status(200).json({

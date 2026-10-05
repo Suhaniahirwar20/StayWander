@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
+
 const wrapAsync = require("../utils/wrapAsync");
+
 const { isLoggedIn, isOwner, validateListing } = require("../middleware");
+
 const {
   index,
   showListing,
@@ -9,10 +12,14 @@ const {
   updateListing,
   destroyListing,
 } = require("../controllers/listing");
+
 const multer = require("multer");
 const { storage } = require("../cloudConfig");
+
 const upload = multer({ storage });
 
+// GET all listings
+// POST a new listing
 router
   .route("/")
   .get(wrapAsync(index))
@@ -23,6 +30,9 @@ router
     wrapAsync(createListing),
   );
 
+// GET one listing
+// UPDATE listing
+// DELETE listing
 router
   .route("/:id")
   .get(wrapAsync(showListing))

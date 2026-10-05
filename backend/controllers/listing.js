@@ -2,37 +2,50 @@ const axios = require("axios");
 const Listing = require("../models/listing");
 const ExpressError = require("../utils/ExpressError");
 
+// GET /api/listings
 module.exports.index = async (req, res) => {
-  let allListings = await Listing.find({});
+  const allListings = await Listing.find({});
+
   res.status(200).json({
     success: true,
     listings: allListings,
   });
 };
 
+// GET /api/listings/:id
 module.exports.showListing = async (req, res, next) => {
-  let { id } = req.params;
+  const { id } = req.params;
+
   const listing = await Listing.findById(id)
-    .populate({ path: "reviews", populate: { path: "author" } })
+    .populate({
+      path: "reviews",
+      populate: {
+        path: "author",
+      },
+    })
     .populate("owner");
+
   if (!listing) {
     return next(new ExpressError(404, "Listing not found"));
   }
+
   res.status(200).json({
     success: true,
     listing,
   });
 };
 
+// POST /api/listings
 module.exports.createListing = async (req, res, next) => {
   if (!req.file) {
     return next(new ExpressError(400, "Image is required"));
   }
-  let url = req.file.path;
-  let filename = req.file.filename;
 
-  const location = req.body.listings.location;
+  const { listings } = req.body;
 
+  const location = listings.location;
+
+  // Get latitude and longitude from location
   const response = await axios.get(
     "https://nominatim.openstreetmap.org/search",
     {
@@ -46,6 +59,7 @@ module.exports.createListing = async (req, res, next) => {
       },
     },
   );
+
   if (!response.data.length) {
     return next(new ExpressError(404, "Location not found"));
   }
@@ -53,14 +67,24 @@ module.exports.createListing = async (req, res, next) => {
   const latitude = parseFloat(response.data[0].lat);
   const longitude = parseFloat(response.data[0].lon);
 
-  const newListing = new Listing(req.body.listings);
-  newListing.owner = req.user._id;
-  newListing.image = { url, filename };
+  // Create listing
+  const newListing = new Listing(listings);
 
+  // Owner comes from authenticated user
+  newListing.owner = req.user._id;
+
+  // Image comes from Cloudinary/Multer
+  newListing.image = {
+    url: req.file.path,
+    filename: req.file.filename,
+  };
+
+  // Location coordinates
   newListing.latitude = latitude;
   newListing.longitude = longitude;
 
   await newListing.save();
+
   res.status(201).json({
     success: true,
     message: "Listing created successfully",
@@ -68,9 +92,11 @@ module.exports.createListing = async (req, res, next) => {
   });
 };
 
-module.exports.updateListing = async (req, res,next) => {
-  let { id } = req.params;
-  let listing = await Listing.findByIdAndUpdate(
+// PUT /api/listings/:id
+module.exports.updateListing = async (req, res, next) => {
+  const { id } = req.params;
+
+  const listing = await Listing.findByIdAndUpdate(
     id,
     { ...req.body.listings },
     {
@@ -83,10 +109,13 @@ module.exports.updateListing = async (req, res,next) => {
     return next(new ExpressError(404, "Listing not found"));
   }
 
-  if (typeof req.file !== "undefined") {
-    let url = req.file.path;
-    let filename = req.file.filename;
-    listing.image = { url, filename };
+  // Update image only if a new image was uploaded
+  if (req.file) {
+    listing.image = {
+      url: req.file.path,
+      filename: req.file.filename,
+    };
+
     await listing.save();
   }
 
@@ -97,13 +126,16 @@ module.exports.updateListing = async (req, res,next) => {
   });
 };
 
-module.exports.destroyListing = async (req, res,next) => {
-  let { id } = req.params;
+// DELETE /api/listings/:id
+module.exports.destroyListing = async (req, res, next) => {
+  const { id } = req.params;
+
   const listing = await Listing.findByIdAndDelete(id);
 
   if (!listing) {
     return next(new ExpressError(404, "Listing not found"));
   }
+
   res.status(200).json({
     success: true,
     message: "Listing deleted successfully",

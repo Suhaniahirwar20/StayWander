@@ -164,28 +164,6 @@ This provides session-based user authentication and protected application functi
 
 ---
 
-## 📸 Screenshots
-
-*Add screenshots of the application here.*
-
-Example:
-
-```text
-screenshots/
-├── home.png
-├── listings.png
-├── listing-details.png
-├── login.png
-└── dashboard.png
-```
-
-You can then display them using:
-
-```markdown
-![StayWander Home](screenshots/home.png)
-```
-
----
 
 ## 🎯 Project Goals
 

@@ -1,4 +1,4 @@
-if(process.env.NODE_ENV != "production"){
+if (process.env.NODE_ENV != "production") {
   require("dotenv").config();
 }
 
@@ -25,20 +25,20 @@ app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // const MONGO_URL = "mongodb://localhost:27017/StayWander";
-const dbUrl = process.env.ATLASDB_URL;
+const dbUrl = process.env.MongoDBURL;
 
-const connectDB = async ()=>{
-  try{
+const connectDB = async () => {
+  try {
     await mongoose.connect(dbUrl);
     console.log("MongoDB Connected");
-  }catch(err){
+  } catch (err) {
     console.log(err);
     process.exit(1);
   }
@@ -46,46 +46,50 @@ const connectDB = async ()=>{
 
 connectDB();
 
+//store becomes the object that tells express-session: "Store my sessions in MongoDB."
+//MongoDB-backed session store.
 const store = MongoStore.create({
-  mongoUrl : dbUrl,
-  crypto:{
-    secret : process.env.SECRET
+  mongoUrl: dbUrl,
+  crypto: {
+    secret: process.env.SECRET,
   },
   touchAfter: 24 * 3600,
 });
 
-store.on("error",(err)=>{
-  console.log("ERROR in MONGO SESSION STORE",err);
+store.on("error", (err) => {
+  console.log("ERROR in MONGO SESSION STORE", err);
 });
 
 const sessionOptions = {
   store,
   secret: process.env.SECRET,
-  resave:false,
-  saveUninitialized:false,
-  cookie:{
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge:7 * 24 *60 * 60 * 1000,
-  }
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  },
 };
 
 app.use(session(sessionOptions));
 
 app.use(passport.initialize());
 app.use(passport.session());
-passport.use(new LocalStrategy(User.authenticate()));
+passport.use(
+  new LocalStrategy({ usernameField: "email" }, User.authenticate()),
+);
 
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-app.use("/api/listings",listingRoute);
-app.use("/api/listings/:id/reviews",reviewRoute);
-app.use("/api/auth",userRoute);
+app.use("/api/listings", listingRoute);
+app.use("/api/listings/:id/reviews", reviewRoute);
+app.use("/api/auth", userRoute);
 
 app.use((req, res, next) => {
-    next(new ExpressError(404, "Page not found"));
+  next(new ExpressError(404, "Page not found"));
 });
 
 app.use((err, req, res, next) => {
@@ -97,7 +101,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 8000;
+const PORT = 8000 || process.env.PORT;
 
 app.listen(PORT, (req, res) => {
   console.log(`server is listening to port ${PORT}`);
